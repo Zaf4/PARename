@@ -107,7 +107,7 @@ def main():
         print(f"{i}/{n_files}\tFile:{file}", end="\t")
         add_par(file)
         print("DONE...")
-
+        
 
 
 if __name__ == "__main__":

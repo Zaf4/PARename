@@ -1,3 +1,2 @@
-*.gtf
-*.tsv
+data/
 .venv/
