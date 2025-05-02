@@ -1,5 +1,5 @@
 import polars as pl
-from argparse import ArgumentParser
+import argparse
 
 
 def is_XorY(name:str)->bool:
@@ -23,7 +23,8 @@ def extract_line_metadata(line:str) -> dict:
 
 def parse_gtf(gtf_file:str):
     """Parse gtf file into  tsv file."""
-    tsv_file = gtf_file.replace('gtf','tsv')
+    extension = gtf_file.split(".")[-1]
+    tsv_file = gtf_file.replace(extension,'tsv')
     with open(tsv_file,'w') as tsv:
         tsv.write("chr\tgene_id\tgene_name\tline\n") # header line
         with open(gtf_file,'r') as file:
@@ -42,7 +43,7 @@ def parse_gtf(gtf_file:str):
     return
 
 
-def find_PAR(tsv_file:str,*,selector:str='gene_id', sort:bool=True)->pl.DataFrame:
+def find_par(tsv_file:str,*,selector:str='gene_id', sort:bool=True)->pl.DataFrame:
     """find regions to add PAR suffix"""
     df = pl.read_csv(tsv_file,separator="\t")
     unq = df.unique(pl.all().exclude('line'))
@@ -65,17 +66,18 @@ def find_PAR(tsv_file:str,*,selector:str='gene_id', sort:bool=True)->pl.DataFram
 
     return modified
 
-def replace_PAR(gtf_file:str)->None:
-    """Replace gene id with gene id PAR."""
-
-    tsv_file = gtf_file.replace('gtf','tsv') # change suffix to tsv
+def add_par(gtf_file:str)->None:
+    """Add PAR suffix to gene_id."""
+    extension = gtf_file.split(".")[-1]
+    tsv_file = gtf_file.replace(extension,'tsv')# change suffix to tsv
     parse_gtf(gtf_file=gtf_file) # generates a tsv file 
     
     # modify the gene ids
-    modified = find_PAR(tsv_file)
+    modified = find_par(tsv_file)
+    print(f"Found {modified.height}",sep="\t")
     line_numbers = modified.select('line').to_series().to_list() # line to be altered
 
-    par_gtf_file = gtf_file.replace('.gtf','.par.gtf')
+    par_gtf_file = gtf_file.replace(extension,f'par.{extension}')
     # IO operations
     with open(par_gtf_file,'w') as par: # open PAR gtf to write
         with open(gtf_file,'r') as gtf: # open gtf to read
@@ -83,7 +85,6 @@ def replace_PAR(gtf_file:str)->None:
                 if i in line_numbers:
                     # if line is to be changed
                     row = modified.filter(pl.col('line')==i)
-                    print(row)
                     gene_id = row.select('gene_id').item()  # retrieve original gene id
                     gene_id_par = row.select('gene_id_par').item() # retrieve PAR gene id
                     new_line = line.replace(gene_id,gene_id_par) # replace the gene id with PAR gene id
@@ -96,7 +97,18 @@ def replace_PAR(gtf_file:str)->None:
 
 
 def main():
-    replace_PAR('madeup.gtf')
+    parser = argparse.ArgumentParser(description="gtfpar")
+    parser.add_argument("gtf_files",nargs="+",help="GTF file path(s)")
+    args = parser.parse_args()
+
+    # files 
+    n_files = len(args.gtf_files)
+    for i,file in enumerate(args.gtf_files,start=1):
+        print(f"{i}/{n_files}\tFile:{file}", end="\t")
+        add_par(file)
+        print("DONE...")
+
+
 
 if __name__ == "__main__":
     main()
