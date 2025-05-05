@@ -17,7 +17,7 @@ def infer_file_type(fname:str)-> Literal['gtf','gff3']:
     file_type = None
     with open(fname,'r') as file:
         for line in file:
-            if line.startswith('##'): # ignore headers
+            if line.startswith('#'): # ignore headers
                 continue
             else:
                 attributes = line.split('\t')[-1]
@@ -43,6 +43,12 @@ def _extract_line_metadata_gtf(line:str) -> dict:
     # add chr name to dict
     info['chr'] = chr_name
 
+    if 'gene_id' not in info:
+        info['gene_id'] = ''
+    if 'gene_name' not in info:
+        info['gene_name'] = ''
+
+
     return info
 
 
@@ -58,9 +64,17 @@ def _extract_line_metadata_gff3(line:str) -> dict:
     # add chr name to dict
     info['chr'] = chr_name
 
+    if 'ID' not in info:
+        info['ID'] = ''
+    if 'Name' not in info:
+        info['Name'] = ''
+
+
     # rename some keys
     info['gene_id'] = info.pop('ID')
     info['gene_name'] = info.pop('Name')
+
+
 
     return info
 
@@ -86,7 +100,7 @@ def parse_gxf(gxf_file:str):
         tsv.write("chr\tgene_id\tgene_name\tline\n") # header line
         with open(gxf_file,'r') as file:
             for i,line in enumerate(file):
-                if line.startswith('##'): # ignore headers
+                if line.startswith('#'): # ignore headers
                     continue
                 elif line.startswith('\n'): # last line
                     pass
