@@ -100,21 +100,21 @@ def parse_gxf(gxf_file:str):
     return
 
 
-def find_par(tsv_file:str,*,selector:str='gene_id', sort:bool=True)->pl.DataFrame:
+def find_par(tsv_file:str,*,selector:str='gene_id', sort:bool=True)->pl.LazyFrame:
     """find regions to add PAR suffix"""
-    df = pl.read_csv(tsv_file,separator="\t")
-    unq = df.unique(pl.all().exclude('line'))
-    gene_ids = unq.select(selector).unique(selector).to_series().to_list()
+    lf = pl.scan_csv(tsv_file,separator="\t")
+    unq = lf.unique(pl.all().exclude('line'))
+    gene_ids = unq.select(selector).unique(selector).collect().to_series().to_list()
 
     # find repeated gene_id for X and Y chromosomes
     repeated = []
     for gene_id in gene_ids:
-        filtered = unq.filter(pl.col(selector)==gene_id)
+        filtered = unq.filter(pl.col(selector)==gene_id).collect()
         if filtered.height > 1: # means there is a repeat (exist both on x and y chr)
             repeated.append(gene_id)
     
     # find line to change gene_id (add suffix) 
-    to_change = df.filter(pl.col(selector).is_in(repeated),pl.col('chr').is_in(['Y','chrY']))
+    to_change = lf.filter(pl.col(selector).is_in(repeated),pl.col('chr').is_in(['Y','chrY']))
     # add the suffix
     modified = to_change.with_columns(pl.col(selector).add('_PAR_Y').alias('gene_id_par'))
 
@@ -131,8 +131,8 @@ def add_par(gxf_file:str)->None:
     
     # modify the gene ids
     modified = find_par(tsv_file)
-    print(f"Found {modified.height}",sep="\t")
-    line_numbers = modified.select('line').to_series().to_list() # line to be altered
+    print(f"Found {modified.collect().height}",sep="\t")
+    line_numbers = modified.select('line').collect().to_series().to_list() # line to be altered
 
     par_gxf_file = gxf_file.replace(extension,f'par.{extension}')
     # IO operations
@@ -142,8 +142,8 @@ def add_par(gxf_file:str)->None:
                 if i in line_numbers:
                     # if line is to be changed
                     row = modified.filter(pl.col('line')==i)
-                    gene_id = row.select('gene_id').item()  # retrieve original gene id
-                    gene_id_par = row.select('gene_id_par').item() # retrieve PAR gene id
+                    gene_id = row.select('gene_id').collect().item()  # retrieve original gene id
+                    gene_id_par = row.select('gene_id_par').collect().item() # retrieve PAR gene id
                     new_line = line.replace(gene_id,gene_id_par) # replace the gene id with PAR gene id
                 else:
                     new_line = line

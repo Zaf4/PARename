@@ -1,0 +1,21 @@
+Lazy took:
+=======================================
+Seconds           : 34
+Milliseconds      : 217
+Ticks             : 342177403
+TotalDays         : 0,00039603866087963
+TotalHours        : 0,00950492786111111
+TotalMinutes      : 0,570295671666667
+TotalSeconds      : 34,2177403
+TotalMilliseconds : 34217,7403
+
+Eager took:
+========================================
+Seconds           : 23
+Milliseconds      : 8
+Ticks             : 230084182
+TotalDays         : 0,000266301136574074
+TotalHours        : 0,00639122727777778
+TotalMinutes      : 0,383473636666667
+TotalSeconds      : 23,0084182
+TotalMilliseconds : 23008,4182
